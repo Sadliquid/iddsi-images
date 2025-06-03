@@ -1,6 +1,6 @@
 # Image Resize Utility
 
-This Python script resizes images that were taken with 3x digital zoom back to their original 1x size using the [Pillow](https://python-pillow.org/) library. It's ideal for reversing digital zoom effects and restoring approximate original framing.
+This Python script resizes images that were taken with 3x digital zoom back to their original 1x size using the Pillow library. It's ideal for reversing digital zoom effects and restoring approximate original framing.
 
 ## Aim
 
