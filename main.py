@@ -6,8 +6,8 @@ from rich.console import Console
 from datetime import datetime
 
 BASE_INPUT_DIR = "data"
-RESIZE_INPUT_DIR = BASE_INPUT_DIR
-CROP_INPUT_DIR = os.path.join(BASE_INPUT_DIR, "1x")
+RESIZE_INPUT_DIR = os.path.join(BASE_INPUT_DIR, "original")
+CROP_PARENT_DIR = os.path.join(BASE_INPUT_DIR, "resized")
 SKIP_FOLDERS = {"20250211", "to_draw"}
 
 SCALE_FACTOR = 1 / 3
@@ -65,10 +65,12 @@ def process_task(args, output_base_dir, process_fn):
     except Exception as e:
         return f"Error processing {file_path}: {e}"
 
-def run_processing(image_tasks, process_fn, label):
+def run_processing(image_tasks, process_fn, label, output_base_dir):
     timestamp = get_timestamp()
-    folder_prefix = "1x" if process_fn == resize_image else "cropped"
-    output_base_dir = os.path.join(BASE_INPUT_DIR, f"{folder_prefix} - {timestamp}")
+    if process_fn == resize_image:
+        output_base_dir = os.path.join(BASE_INPUT_DIR, "resized", f"1x - {timestamp}")
+    else:
+        output_base_dir = os.path.join(BASE_INPUT_DIR, "cropped", f"cropped - {timestamp}")
 
     with Progress() as progress:
         task = progress.add_task(f"[cyan]{label} images...", total=len(image_tasks))
@@ -93,16 +95,17 @@ if __name__ == "__main__":
 
     if choice == "1":
         tasks = find_images(RESIZE_INPUT_DIR, SKIP_FOLDERS)
-        run_processing(tasks, resize_image, "Resizing")
+        output_base_dir = os.path.join(BASE_INPUT_DIR, "resized", f"1x - {get_timestamp()}")
+        run_processing(tasks, resize_image, "Resizing", output_base_dir)
 
     elif choice == "2":
-        folders = sorted([f for f in os.listdir(BASE_INPUT_DIR) if f.startswith("1x") and os.path.isdir(os.path.join(BASE_INPUT_DIR, f))])
+        folders = sorted([f for f in os.listdir(CROP_PARENT_DIR) if f.startswith("1x") and os.path.isdir(os.path.join(CROP_PARENT_DIR, f))])
 
         if not folders:
             console.print("[red]No folders starting with '1x' found. Exiting.")
             exit(1)
 
-        console.print("\n[bold yellow]Available '1x' folders:")
+        console.print("\n[bold yellow]Available options:")
         for i, folder in enumerate(folders, 1):
             console.print(f"[{i}] {folder}")
 
@@ -113,9 +116,10 @@ if __name__ == "__main__":
             exit(1)
 
         selected_folder = folders[int(idx) - 1]
-        CROP_INPUT_DIR = os.path.join(BASE_INPUT_DIR, selected_folder)
+        CROP_INPUT_DIR = os.path.join(CROP_PARENT_DIR, selected_folder)
+        output_base_dir = os.path.join(BASE_INPUT_DIR, "cropped", f"cropped - {get_timestamp()}")
 
         tasks = find_images(CROP_INPUT_DIR, {"20250211"})
-        run_processing(tasks, crop_center, "Cropping")
+        run_processing(tasks, crop_center, "Cropping", output_base_dir)
     else:
         console.print("[red]Invalid choice. Exiting.")
