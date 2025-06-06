@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distance Detection</title>
+	<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
     <style>
         * {
             margin: 0;
@@ -322,24 +324,27 @@
                 this.originalCanvas.height = height;
                 this.originalCtx.drawImage(img, 0, 0, width, height);
 
-                const detectedObjects = await this.detectFaces();
+                const detectedObjects = await this.detectObjects();
 
                 this.calculateDistance(detectedObjects, scale);
                 this.showResults(true);
             }
 
-            async detectFaces() {
-                const imageData = this.originalCtx.getImageData(0, 0, this.originalCanvas.width, this.originalCanvas.height);
-                const faces = this.findFaceRegions(imageData);
+            async detectObjects() {
+				const model = await cocoSsd.load();
+				const predictions = await model.detect(this.originalCanvas);
 
-                this.originalCtx.strokeStyle = '#667eea';
-                this.originalCtx.lineWidth = 3;
-                faces.forEach(face => {
-                    this.originalCtx.strokeRect(face.x, face.y, face.width, face.height);
-                });
+				this.originalCtx.strokeStyle = '#667eea';
+				this.originalCtx.lineWidth = 3;
 
-                return faces;
-            }
+				const objects = predictions.map(pred => {
+					const [x, y, width, height] = pred.bbox;
+					this.originalCtx.strokeRect(x, y, width, height);
+					return { x, y, width, height, class: pred.class };
+				});
+
+				return objects;
+			}
 
             findFaceRegions(imageData) {
                 const data = imageData.data;
