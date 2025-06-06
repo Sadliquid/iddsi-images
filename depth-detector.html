@@ -153,36 +153,6 @@
             color: #2d3748;
         }
 
-        .status {
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 1.2rem;
-            margin-top: 20px;
-            animation: pulse 2s infinite;
-        }
-
-        .status.perfect {
-            background: linear-gradient(135deg, #68d391, #48bb78);
-            color: white;
-        }
-
-        .status.close {
-            background: linear-gradient(135deg, #fbd38d, #f6ad55);
-            color: #744210;
-        }
-
-        .status.far {
-            background: linear-gradient(135deg, #fc8181, #f56565);
-            color: white;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
         .loading {
             display: none;
             text-align: center;
@@ -267,18 +237,6 @@
                     <span class="metric-label">Estimated Distance:</span>
                     <span class="metric-value" id="estimatedDistance">-</span>
                 </div>
-                <div class="metric">
-                    <span class="metric-label">Target Distance:</span>
-                    <span class="metric-value" id="targetDistanceDisplay">30cm</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Distance Difference:</span>
-                    <span class="metric-value" id="distanceDiff">-</span>
-                </div>
-
-                <div class="status" id="status">
-                    Upload an image to begin analysis
-                </div>
             </div>
         </div>
     </div>
@@ -289,8 +247,6 @@
                 this.originalCanvas = document.getElementById('originalCanvas');
                 this.originalCtx = this.originalCanvas.getContext('2d');
 
-                this.targetDistance = 30;
-                this.tolerance = 5;
                 this.objectType = 'face';
                 this.realWorldSize = 20;
 
@@ -479,46 +435,18 @@
 
                     const estimatedDistance = (this.realWorldSize * focalLength) / objectSizePixels;
 
-                    if (estimatedDistance > 0 && estimatedDistance < 500) { // Reasonable distance range
+                    if (estimatedDistance > 0 && estimatedDistance < 500) {
                         totalDistance += estimatedDistance;
                         validObjects++;
                     }
                 });
 
                 const avgDistance = validObjects > 0 ? totalDistance / validObjects : 0;
-                const distanceDiff = Math.abs(avgDistance - this.targetDistance);
 
                 document.getElementById('objectCount').textContent = objects.length;
                 document.getElementById('objectSize').textContent = objects.length > 0 ?
                     `${Math.round(objects[0].width / scale)}px` : 'N/A';
                 document.getElementById('estimatedDistance').textContent = `${Math.round(avgDistance)}cm`;
-                document.getElementById('distanceDiff').textContent = `${Math.round(distanceDiff)}cm`;
-
-                this.updateStatus(avgDistance, this.targetDistance, this.tolerance);
-            }
-
-            updateStatus(estimatedDistance, targetDistance, tolerance) {
-                const statusEl = document.getElementById('status');
-                const distanceDiff = Math.abs(estimatedDistance - targetDistance);
-
-                if (distanceDiff <= tolerance) {
-                    statusEl.className = 'status perfect';
-                    statusEl.textContent = '✅ Perfect Distance!';
-                } else if (distanceDiff <= tolerance * 2) {
-                    statusEl.className = 'status close';
-                    if (estimatedDistance > targetDistance) {
-                        statusEl.textContent = '⚠️ Move Closer';
-                    } else {
-                        statusEl.textContent = '⚠️ Move Further';
-                    }
-                } else {
-                    statusEl.className = 'status far';
-                    if (estimatedDistance > targetDistance) {
-                        statusEl.textContent = '❌ Too Far - Move Much Closer';
-                    } else {
-                        statusEl.textContent = '❌ Too Close - Move Much Further';
-                    }
-                }
             }
 
             showLoading(show) {
