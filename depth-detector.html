@@ -44,7 +44,7 @@
         .upload-area {
             border: 3px dashed #cbd5e0;
             border-radius: 15px;
-            padding: 40px;
+            padding: 60px 40px;
             margin-bottom: 20px;
             transition: all 0.3s ease;
             cursor: pointer;
@@ -64,71 +64,25 @@
         }
 
         .upload-icon {
-            font-size: 3rem;
-            color: #a0aec0;
-            margin-bottom: 15px;
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
         }
 
         .upload-text {
-            color: #4a5568;
-            font-size: 1.1rem;
+            color: #2d3748;
+            font-size: 1.3rem;
+            font-weight: 600;
             margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #a0aec0;
+            font-size: 1rem;
         }
 
         input[type="file"] {
             display: none;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
-        }
-
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(247, 250, 252, 0.7);
-            border-radius: 15px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .control-group label {
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 8px;
-        }
-
-        .control-group input, .control-group select {
-            padding: 10px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-
-        .control-group input:focus, .control-group select:focus {
-            outline: none;
-            border-color: #667eea;
         }
 
         .results {
@@ -255,12 +209,20 @@
                 grid-template-columns: 1fr;
             }
 
-            .controls {
-                grid-template-columns: 1fr;
-            }
-
             h1 {
                 font-size: 2rem;
+            }
+
+            .upload-area {
+                padding: 40px 20px;
+            }
+
+            .upload-icon {
+                font-size: 3rem;
+            }
+
+            .upload-text {
+                font-size: 1.1rem;
             }
         }
     </style>
@@ -272,37 +234,10 @@
         <div class="upload-section">
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📷</div>
-                <div class="upload-text">Drop your image here or click to browse</div>
-                <div style="color: #a0aec0; font-size: 0.9rem;">Supports JPG, PNG, WebP</div>
+                <div class="upload-text">Drop your image here or click to select</div>
+                <div class="upload-subtext">Supports JPG, PNG, WebP</div>
             </div>
             <input type="file" id="imageInput" accept="image/*">
-            <button class="btn" onclick="document.getElementById('imageInput').click()">
-                Choose Image
-            </button>
-        </div>
-
-        <div class="controls">
-            <div class="control-group">
-                <label for="targetDistance">Target Distance (cm)</label>
-                <input type="number" id="targetDistance" value="30" min="5" max="200">
-            </div>
-            <div class="control-group">
-                <label for="tolerance">Tolerance (cm)</label>
-                <input type="number" id="tolerance" value="5" min="1" max="20">
-            </div>
-            <div class="control-group">
-                <label for="objectType">Object Type</label>
-                <select id="objectType">
-                    <option value="face">Human Face</option>
-                    <option value="hand">Hand</option>
-                    <option value="document">Document/Card</option>
-                    <option value="custom">Custom Object</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="realWorldSize">Real World Size (cm)</label>
-                <input type="number" id="realWorldSize" value="20" min="1" max="100" step="0.1">
-            </div>
         </div>
 
         <div class="loading" id="loading">
@@ -334,7 +269,7 @@
                 </div>
                 <div class="metric">
                     <span class="metric-label">Target Distance:</span>
-                    <span class="metric-value" id="targetDistanceDisplay">-</span>
+                    <span class="metric-value" id="targetDistanceDisplay">30cm</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Distance Difference:</span>
@@ -353,14 +288,18 @@
             constructor() {
                 this.originalCanvas = document.getElementById('originalCanvas');
                 this.originalCtx = this.originalCanvas.getContext('2d');
+
+                this.targetDistance = 30;
+                this.tolerance = 5;
+                this.objectType = 'face';
+                this.realWorldSize = 20;
+
                 this.setupEventListeners();
-                this.updateRealWorldSize();
             }
 
             setupEventListeners() {
                 const imageInput = document.getElementById('imageInput');
                 const uploadArea = document.getElementById('uploadArea');
-                const objectType = document.getElementById('objectType');
 
                 imageInput.addEventListener('change', (e) => this.handleImageUpload(e));
 
@@ -380,22 +319,6 @@
                         this.processImage(files[0]);
                     }
                 });
-
-                objectType.addEventListener('change', () => this.updateRealWorldSize());
-            }
-
-            updateRealWorldSize() {
-                const objectType = document.getElementById('objectType').value;
-                const realWorldSizeInput = document.getElementById('realWorldSize');
-
-                const defaultSizes = {
-                    'face': 20,      // Average human face width
-                    'hand': 18,      // Average hand width
-                    'document': 8.5, // Credit card width
-                    'custom': 10
-                };
-
-                realWorldSizeInput.value = defaultSizes[objectType] || 10;
             }
 
             async handleImageUpload(event) {
@@ -434,7 +357,6 @@
             }
 
             async analyzeImage(img) {
-                // Setup canvas
                 const maxWidth = 600;
                 const scale = Math.min(maxWidth / img.width, maxWidth / img.height);
                 const width = img.width * scale;
@@ -444,28 +366,16 @@
                 this.originalCanvas.height = height;
                 this.originalCtx.drawImage(img, 0, 0, width, height);
 
-                // Detect objects based on type
-                const objectType = document.getElementById('objectType').value;
-                let detectedObjects = [];
-
-                if (objectType === 'face') {
-                    detectedObjects = await this.detectFaces();
-                } else {
-                    // For other objects, use edge detection or user can manually specify
-                    detectedObjects = await this.detectGenericObjects();
-                }
+                const detectedObjects = await this.detectFaces();
 
                 this.calculateDistance(detectedObjects, scale);
                 this.showResults(true);
             }
 
             async detectFaces() {
-                // Simple face detection using basic image processing
-                // In production, you'd want to use a proper face detection library
                 const imageData = this.originalCtx.getImageData(0, 0, this.originalCanvas.width, this.originalCanvas.height);
                 const faces = this.findFaceRegions(imageData);
 
-                // Draw detection boxes
                 this.originalCtx.strokeStyle = '#667eea';
                 this.originalCtx.lineWidth = 3;
                 faces.forEach(face => {
@@ -476,12 +386,10 @@
             }
 
             findFaceRegions(imageData) {
-                // Simplified face detection using skin color detection and region analysis
                 const data = imageData.data;
                 const width = imageData.width;
                 const height = imageData.height;
 
-                // Create a binary mask for potential face regions
                 const mask = new Uint8Array(width * height);
 
                 for (let i = 0; i < data.length; i += 4) {
@@ -489,30 +397,23 @@
                     const g = data[i + 1];
                     const b = data[i + 2];
 
-                    // Simple skin color detection
                     if (this.isSkinColor(r, g, b)) {
                         mask[i / 4] = 1;
                     }
                 }
 
-                // Find connected components (simplified)
                 const regions = this.findConnectedRegions(mask, width, height);
 
-                // Filter regions by size and aspect ratio
                 const faces = regions.filter(region => {
                     const aspectRatio = region.width / region.height;
-                    return region.width > 30 && region.height > 30 &&
-                           aspectRatio > 0.6 && aspectRatio < 1.4;
+                    return region.width > 30 && region.height > 30 && aspectRatio > 0.6 && aspectRatio < 1.4;
                 });
 
                 return faces.length > 0 ? faces : [{ x: width * 0.25, y: height * 0.25, width: width * 0.5, height: height * 0.5 }];
             }
 
             isSkinColor(r, g, b) {
-                // Simple skin color detection
-                return r > 95 && g > 40 && b > 20 &&
-                       Math.max(r, g, b) - Math.min(r, g, b) > 15 &&
-                       Math.abs(r - g) > 15 && r > g && r > b;
+                return r > 95 && g > 40 && b > 20 && Math.max(r, g, b) - Math.min(r, g, b) > 15 && Math.abs(r - g) > 15 && r > g && r > b;
             }
 
             findConnectedRegions(mask, width, height) {
@@ -524,7 +425,7 @@
                         const idx = y * width + x;
                         if (mask[idx] && !visited[idx]) {
                             const region = this.floodFill(mask, visited, x, y, width, height);
-                            if (region.pixels > 100) { // Minimum size threshold
+                            if (region.pixels > 100) {
                                 regions.push(region);
                             }
                         }
@@ -567,43 +468,16 @@
                 };
             }
 
-            async detectGenericObjects() {
-                // For non-face objects, use edge detection or return default region
-                const centerX = this.originalCanvas.width * 0.3;
-                const centerY = this.originalCanvas.height * 0.3;
-                const objWidth = this.originalCanvas.width * 0.4;
-                const objHeight = this.originalCanvas.height * 0.4;
-
-                // Draw detection box
-                this.originalCtx.strokeStyle = '#667eea';
-                this.originalCtx.lineWidth = 3;
-                this.originalCtx.strokeRect(centerX, centerY, objWidth, objHeight);
-
-                return [{
-                    x: centerX,
-                    y: centerY,
-                    width: objWidth,
-                    height: objHeight
-                }];
-            }
-
             calculateDistance(objects, scale) {
-                const targetDistance = parseFloat(document.getElementById('targetDistance').value);
-                const tolerance = parseFloat(document.getElementById('tolerance').value);
-                const realWorldSize = parseFloat(document.getElementById('realWorldSize').value);
-
-                // Camera parameters (these would be calibrated for your specific camera)
-                const focalLength = 800; // pixels (approximate for typical smartphone)
+                const focalLength = 800;
 
                 let totalDistance = 0;
                 let validObjects = 0;
 
                 objects.forEach(obj => {
-                    // Use the larger dimension for more stable distance calculation
                     const objectSizePixels = Math.max(obj.width, obj.height) / scale;
 
-                    // Distance calculation: distance = (realWorldSize * focalLength) / objectSizePixels
-                    const estimatedDistance = (realWorldSize * focalLength) / objectSizePixels;
+                    const estimatedDistance = (this.realWorldSize * focalLength) / objectSizePixels;
 
                     if (estimatedDistance > 0 && estimatedDistance < 500) { // Reasonable distance range
                         totalDistance += estimatedDistance;
@@ -612,18 +486,15 @@
                 });
 
                 const avgDistance = validObjects > 0 ? totalDistance / validObjects : 0;
-                const distanceDiff = Math.abs(avgDistance - targetDistance);
+                const distanceDiff = Math.abs(avgDistance - this.targetDistance);
 
-                // Update UI
                 document.getElementById('objectCount').textContent = objects.length;
                 document.getElementById('objectSize').textContent = objects.length > 0 ?
                     `${Math.round(objects[0].width / scale)}px` : 'N/A';
                 document.getElementById('estimatedDistance').textContent = `${Math.round(avgDistance)}cm`;
-                document.getElementById('targetDistanceDisplay').textContent = `${targetDistance}cm`;
                 document.getElementById('distanceDiff').textContent = `${Math.round(distanceDiff)}cm`;
 
-                // Update status
-                this.updateStatus(avgDistance, targetDistance, tolerance);
+                this.updateStatus(avgDistance, this.targetDistance, this.tolerance);
             }
 
             updateStatus(estimatedDistance, targetDistance, tolerance) {
@@ -659,7 +530,6 @@
             }
         }
 
-        // Initialize the distance detector when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             new DistanceDetector();
         });
