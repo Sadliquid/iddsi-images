@@ -34,14 +34,14 @@ def find_images(base_dir, skip_folders=None):
     if skip_folders is None:
         skip_folders = set()
 
-    for file_name in os.listdir(base_dir):
-        full_path = os.path.join(base_dir, file_name)
-        if os.path.isdir(full_path):
-            if os.path.basename(full_path) in skip_folders:
-                continue
+    for root, dirs, files in os.walk(base_dir):
+        if any(skip in root for skip in skip_folders):
             continue
-        if file_name.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
-            tasks.append((os.path.basename(base_dir), file_name, full_path))
+        folder_name = os.path.basename(os.path.dirname(root))
+        for file_name in files:
+            if file_name.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+                full_path = os.path.join(root, file_name)
+                tasks.append((folder_name, file_name, full_path))
 
     return tasks
 
