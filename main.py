@@ -1,3 +1,5 @@
+# Data Cleaning Console
+
 import os
 from PIL import Image, ImageOps
 from multiprocessing import Pool, cpu_count
@@ -37,7 +39,7 @@ def find_images(base_dir, skip_folders=None):
     for root, dirs, files in os.walk(base_dir):
         if any(skip in root for skip in skip_folders):
             continue
-        folder_name = os.path.basename(os.path.dirname(root))
+        folder_name = os.path.relpath(root, base_dir)
         for file_name in files:
             if file_name.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
                 full_path = os.path.join(root, file_name)
@@ -138,7 +140,8 @@ if __name__ == "__main__":
 
             crop_fn = partial(crop_center, ratio=ratio)
 
-            run_processing(tasks, crop_fn, f"Cropping {subfolder}", final_output_dir)
+            subfolder_output = os.path.join(final_output_dir, subfolder)
+            run_processing(tasks, crop_fn, f"Cropping {subfolder}", subfolder_output)
             total_images += len(tasks)
 
         if total_images == 0:
